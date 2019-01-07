@@ -31,7 +31,7 @@ import javax.xml.namespace.QName;
 	// Get an output factory
     //
     XMLOutputFactory xmlof = XMLOutputFactory.newInstance();
-    System.out.println("FACTORY: " + xmlof);
+    System.out.println("FACTORY:  " + xmlof);
      //
     // Instantiate a writer
     //
