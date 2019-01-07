@@ -2,9 +2,9 @@ package examples.StAX;
 
 
 import java.io.FileOutputStream;
-import java.util.Iterator;
 import javax.xml.stream.*;
-import javax.xml.namespace.QName;
+//import java.util.Iterator;
+//import javax.xml.namespace.QName;
  /**
  * This is a simple example that illustrates how to use the
  * the XMLStreamWriter class to generate XML.
