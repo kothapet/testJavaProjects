@@ -27,7 +27,7 @@ public class SplitXML {
 	private static String docEncoding;
 	//private static boolean isDocStandalone;
 
-	private static boolean startWriting = false; 
+	private static boolean startWriting = false;
 	private static String rootName;
 	private static TreeMap<String, String> rootAtts = new TreeMap<String, String>();
 
