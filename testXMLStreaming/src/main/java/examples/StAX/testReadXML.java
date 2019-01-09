@@ -1,9 +1,9 @@
 package examples.StAX;
 
 import java.io.FileReader;
-import java.util.Iterator;
 import javax.xml.stream.*;
-import javax.xml.namespace.QName;
+//import java.util.Iterator;
+//import javax.xml.namespace.QName;
 
 /**
  * This is a simple parsing example that illustrates the XMLStreamReader class.

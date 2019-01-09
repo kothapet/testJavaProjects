@@ -1,6 +1,7 @@
 package examples.StAX;
 
 import java.io.FileReader;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Map;
 import java.util.TreeMap;
@@ -17,12 +18,8 @@ import javax.xml.stream.*;
  */
 public class SplitXML {
 
-
-	private static String inputDir = "C:/EclipseNeonWorkSpace/OmniXML/omni_data/";
-	private static String inputFile = "omnilog20181212-135913.xml";
-
-	private static String outputDir = "C:/EclipseNeonWorkSpace/OmniXML/omni_data/out/";
-	private static String outputPre = "omnilog_";
+	private static String outputDir ;
+	private static String outputPre ;
 	private static String outputSuf = ".xml";
 	private static XMLOutputFactory xmlof = XMLOutputFactory.newInstance();
 
@@ -38,8 +35,57 @@ public class SplitXML {
 	private static XMLStreamWriter xmlw;
 
 	public static void main(String[] args) throws Exception {
-		String inFilename = null;
-		inFilename = inputDir + inputFile;
+
+		boolean isError = false;
+
+		String inputDir = System.getProperty("inputDir");
+		System.out.println("inputDir : " + inputDir);
+		if (inputDir==null || inputDir.equalsIgnoreCase("") ) {
+			inputDir = ".";
+		}
+
+		File f;
+		f = new File(inputDir);
+		if (!f.exists() | !f.isDirectory()) {
+			System.out.println("Invalid " + inputDir +" -DinputDir=<Input directory name>, enter valid directory where the input XML file is located. ");
+			isError = true;
+		}
+
+		String inputFile = System.getProperty("inputFile");
+		System.out.println("inputFile : " + inputFile);
+		if (inputFile==null ) {
+			inputFile = "omnilog.xml";
+		}
+
+       	File inFilename = new File(inputDir + File.separator + inputFile);
+		if (!inFilename.exists() | !inFilename.isFile()) {
+			System.out.println("Invalid " + inputFile +" -DinputFile=<file name>, enter valid file name for the input XML file. ");
+			isError = true;
+		}
+
+		outputPre = inputFile.substring(0, inputFile.length()-4 );
+
+		outputDir = System.getProperty("outputDir");
+		System.out.println("outputDir : " + outputDir);
+		if (outputDir==null || outputDir.equalsIgnoreCase("") ) {
+			outputDir = ".";
+		}
+
+		f = new File(outputDir);
+		if (!f.exists() | !f.isDirectory()) {
+			System.out.println("Invalid " + outputDir +" -DoutputDir=<batch directory name>, enter valid directory where the output files needs to be stored. ");
+			isError = true;
+		}
+
+		if (isError) {
+			printUsage();
+			return;
+		}
+
+		processMain(inFilename);
+	}
+
+	private static void processMain(File inFilename) throws Exception {
 		//
 		// Get an input factory
 		//
@@ -63,6 +109,23 @@ public class SplitXML {
 		// Close the reader
 		//
 		xmlr.close();
+   		System.out.println("Processing complete.." );
+	}
+
+	private static void printUsage() {
+		System.out.println("Usage :  ");
+		System.out.println(" $JAVADIR/java.exe " +
+		                       " [-DinputDir=<Input directory name>] " +
+		                       " [-DinputFile=<input file name>] " +
+		                       " [-DoutputDir=<Output directory name>] " +
+				               " -cp \"$CLASSDIR/*\" examples.StAX.SplitXML  ");
+
+		System.out.println(" " );
+		System.out.println(" where [] : optional parameters " );
+		System.out.println("   when optional is not provided, the following is assumed " );
+		System.out.println("   inputDir  = \".\" (current directory is assumed) " );
+		System.out.println("   inputFile = \"omnilog.xml\"  " );
+		System.out.println("   outputDir = \".\" (current directory is assumed) " );
 	}
 
 	private static void handleEvent(XMLStreamReader xmlr) throws Exception {
@@ -84,15 +147,9 @@ public class SplitXML {
 	}
 
 	private static void handleCHEvent(XMLStreamReader xmlr) throws Exception {
-		/*
-		int start = xmlr.getTextStart();
-		int length = xmlr.getTextLength();
-		xmlw.writeCharacters(new String(xmlr.getTextCharacters(), start, length));
-		*/
 		if (startWriting) {
 			xmlw.writeCharacters(xmlr.getText() );
 		}
-
 	}
 
 	private static void handleEEEvent(XMLStreamReader xmlr) throws Exception {
@@ -104,11 +161,6 @@ public class SplitXML {
 		    xmlw.writeEndElement();
 		    //xmlw.writeCharacters("\n");
 		}
-		/*
-		System.out.print("</");
-		printName(xmlr);
-		System.out.print(">");
-		*/
 	}
 
 	private static void handleSDEvent(XMLStreamReader xmlr)  {
@@ -116,17 +168,6 @@ public class SplitXML {
 		docVersion = xmlr.getVersion();
 		docEncoding = xmlr.getCharacterEncodingScheme();
 		//boolean isDocStandalone = xmlr.isStandalone();
-
-		/*
-		System.out.print("<?xml");
-		System.out.print(" version='" + xmlr.getVersion() + "'");
-		System.out.print(" encoding='" + xmlr.getCharacterEncodingScheme() + "'");
-		if (xmlr.isStandalone())
-			System.out.print(" standalone='yes'");
-		else
-			System.out.print(" standalone='no'");
-		System.out.print("?>");
-		*/
 	}
 
 	private static void handleSEEvent(XMLStreamReader xmlr) throws Exception {
@@ -143,27 +184,13 @@ public class SplitXML {
 		}
 
 		copyElement(xmlr);
-		/*
-		System.out.print("<");
-		printName(xmlr);
-		printNamespaces(xmlr);
-		printAttributes(xmlr);
-		System.out.print(">");
-		*/
 	}
 
 	private static void saveRootElement(XMLStreamReader xmlr) throws Exception {
-		saveRootName(xmlr);
-		//copyNamespaces(xmlr);
-		saveRootAttributes(xmlr);
-	}
-
-	private static void saveRootName(XMLStreamReader xmlr) throws Exception {
+		//save root name
 		rootName = xmlr.getLocalName();
-		//xmlw.writeStartElement(xmlr.getPrefix(), xmlr.getLocalName(), xmlr.getNamespaceURI());
-	}
-
-	private static void saveRootAttributes(XMLStreamReader xmlr) throws Exception {
+		//copyNamespaces(xmlr);
+		//save root attributes
 		for (int i = 0; i < xmlr.getAttributeCount(); i++) {
 			rootAtts.put(xmlr.getAttributeLocalName(i),xmlr.getAttributeValue(i));
 		}
@@ -185,7 +212,8 @@ public class SplitXML {
 		if(xmlSWMap.containsKey(recId) ) {
 			xmlw = xmlSWMap.get(recId);
 		} else {
-			String outputFileName = outputDir + outputPre + recId + outputSuf;
+			String outputFileName = outputDir + File.separator + outputPre + recId + outputSuf;
+			System.out.println("  Started processing recId : " + recId + " Output File : " + outputFileName );
 			XMLStreamWriter xmlwNew = xmlof.createXMLStreamWriter(new FileOutputStream (outputFileName), docEncoding);
 			xmlw = xmlwNew;
 			xmlSWMap.put(recId, xmlwNew);
@@ -198,6 +226,8 @@ public class SplitXML {
 	private static void writeEndDocument() throws Exception {
        	for(Map.Entry<String, XMLStreamWriter> map1:xmlSWMap.entrySet()){
        		XMLStreamWriter xmlw = map1.getValue();
+
+       		//System.out.println("   output file closed : " + xmlw. );
 
        		// write the root element end
        	    xmlw.writeEndElement();
