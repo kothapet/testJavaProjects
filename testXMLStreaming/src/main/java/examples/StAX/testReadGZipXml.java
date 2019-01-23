@@ -1,11 +1,13 @@
 package examples.StAX;
 
-import java.io.FileReader;
+import java.io.FileInputStream;
+import java.util.zip.GZIPInputStream;
+
 import javax.xml.stream.*;
 
 /**
  */
-public class testReadXML {
+public class testReadGZipXml {
 	private static String filename = null;
 
 	private static void printUsage() {
@@ -14,12 +16,11 @@ public class testReadXML {
 
 	public static void main(String[] args) throws Exception {
 		try {
-			String inputDir = "C:/EclipseNeonWorkSpace/OmniXML/data/";
-			String inputFile = "omnilogsubset.txt";
-			//String inputDir = "C:/EclipseNeonWorkSpace/OmniXML/omni_data/";
-			//String inputFile = "omnilog20181212-135913.xml";
-			//String inputDir = "C:/EclipseNeonWorkSpace/OmniXML/omni_data/OmniXML/In/";
-			//String inputFile = "PLPL.xml";
+			//String inputDir = "C:/EclipseNeonWorkSpace/OmniXML/data/";
+			//String inputFile = "test1.xml";
+			String inputDir = "C:/EclipseNeonWorkSpace/OmniXML/gz/";
+			String inputFile = "omnilog20181212-135913.xml.gz";
+			//String inputFile = "TEST1.zip";
 
 			// filename = args[0];
 			filename = inputDir + inputFile;
@@ -30,8 +31,10 @@ public class testReadXML {
 
 		XMLInputFactory xmlInFactory = XMLInputFactory.newInstance();
 		System.out.println("FACTORY: " + xmlInFactory);
+		XMLStreamReader xmlReader = null;
 
-		XMLStreamReader xmlReader = xmlInFactory.createXMLStreamReader(new FileReader(filename));
+		GZIPInputStream gzis = new GZIPInputStream(new FileInputStream(filename));
+		xmlReader = xmlInFactory.createXMLStreamReader(gzis);
 		System.out.println("READER:  " + xmlReader + "\n");
 
 		while (xmlReader.hasNext()) {
@@ -40,6 +43,7 @@ public class testReadXML {
 		}
 
 		xmlReader.close();
+		gzis.close();
 	}
 
 	private static void printEvent(XMLStreamReader xmlReader) {
