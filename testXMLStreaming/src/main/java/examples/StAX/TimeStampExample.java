@@ -7,6 +7,8 @@ import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class TimeStampExample {
 
@@ -14,6 +16,7 @@ public class TimeStampExample {
 
     public static void main(String[] args) {
 
+		/*
         //method 1
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         System.out.println(timestamp);
@@ -29,6 +32,7 @@ public class TimeStampExample {
         //System.out.println(sdf.format(timestamp));
 		Path inputDir =  Paths.get("C:/EclipseNeonWorkSpace/OmniXML/omni_data/out/");
 		String inputPattern = "omnilog20181212*.xml";
+		*/
 
 		try {
 			/*
@@ -37,11 +41,22 @@ public class TimeStampExample {
 		    	System.out.println("file : " + entry.toFile().getAbsolutePath() );
 		    	System.out.println("file : " + entry.toFile().getName() );
 		    }
-		    */
 			final String QUOTE = "\"";
 			String test1 = "xyz" + QUOTE + "test"+ QUOTE + "junk";
 	    	System.out.println("test1 : " + test1 );
 	    	System.out.println("test1 : " + QUOTE+test1.replace(QUOTE, QUOTE+QUOTE)+QUOTE );
+		    */
+
+			TreeMap<String, String> testMap = new TreeMap<String, String>();
+			testMap.put("001","val 1");
+			testMap.put("000","Val 0");
+			testMap.put("002","val 2");
+			testMap.put("#00","key1");
+			testMap.put("#01","key2");
+
+			for(Map.Entry<String, String> entry : testMap.entrySet()) {
+		    	System.out.println("key : " + entry.getKey() + "   VALUE: " + entry.getValue() );
+			}
 
 		} catch (Exception e) {
 			e.printStackTrace();

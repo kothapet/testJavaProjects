@@ -13,7 +13,7 @@ import java.util.zip.GZIPOutputStream;
 
 /**
  */
-public class SplitXmlGZipStream {
+public class SplitXmlGZipStreamTry {
 
 	private static String outputDir ;
 	private static String outputPre ;
@@ -32,6 +32,23 @@ public class SplitXmlGZipStream {
 	private static String rootName;
 	private static TreeMap<String, String> rootAtts = new TreeMap<String, String>();
 
+	//Stores the current tag
+	private static String currentTag;
+	private static String currentValue;
+	private static String RecId;
+	private static String RecSubType;  //Some Record types needs to be split into
+	//Stores attributes for the current tag
+	private static TreeMap<String, String> attributeMap = new TreeMap<String, String>();
+	private static Object[] obj;
+	//Stores all the tag -
+	//  String stores tag name
+	//   and Object[0] stores Attribute map
+	//   and Object[1] stores tag value
+	// At a time this only stores one record
+	//    At the beginning it gets initialized, at the end it gets written to each record type xml
+	private static TreeMap<String, Object[]> ElementMap = new TreeMap<String, Object[]>();
+
+	//This map stores for each record type, the xml writer object
 	private static TreeMap<String, Object[]> xmlSWMap = new TreeMap<String, Object[]>();
 	private static XMLStreamWriter xmlw;
 
@@ -160,12 +177,12 @@ public class SplitXmlGZipStream {
 			case XMLStreamConstants.START_ELEMENT:
 				handleSEEvent(xmlReader);
 				break;
-			case XMLStreamConstants.END_ELEMENT:
-				handleEEEvent(xmlReader);
-				break;
 			case XMLStreamConstants.SPACE:
 			case XMLStreamConstants.CHARACTERS:
 				handleCHEvent(xmlReader);
+				break;
+			case XMLStreamConstants.END_ELEMENT:
+				handleEEEvent(xmlReader);
 				break;
 		}
 	}
@@ -173,17 +190,91 @@ public class SplitXmlGZipStream {
 	//START_DOCUMENT
 	private static void handleSDEvent(XMLStreamReader xmlReader)  {
 
+		// start document store the Version and the Encoding
 		docVersion = xmlReader.getVersion();
 		docEncoding = xmlReader.getCharacterEncodingScheme();
 		lineCount++;
 		//boolean isDocStandalone = xmlReader.isStandalone();
 	}
 
+	//START_ELEMENT
+	private static void handleSEEvent(XMLStreamReader xmlReader) throws Exception {
+
+		String[] tagName = getName(xmlReader);
+		currentTag = tagName[0];
+		if (currentTag.equalsIgnoreCase("OmniLog")) {
+			saveRootElement(xmlReader);
+			return;
+		}
+
+		//All other tags save them
+		saveRecord(xmlReader);
+
+		/*
+		if (tagName[0].equalsIgnoreCase("LgRec")) {
+			recCount++;
+			lineCount++;  //LgRec is usually 2 lines
+			if ( (recCount % messageLim) == 0 ) {
+				System.out.println("Processed Record count : " + recCount + " Line count : " + lineCount + " Time : " + (new Timestamp(System.currentTimeMillis())) );
+			}
+			String recId = getAttribute(xmlReader,"RecId");
+			setCurrentXMLwriter(recId);
+		}
+		lineCount++;
+
+		copyElement(xmlReader);
+		*/
+	}
+
+	private static void saveRootElement(XMLStreamReader xmlReader) throws Exception {
+		//save root name
+		rootName = xmlReader.getLocalName();
+		//copyNamespaces(xmlReader);
+		//save root attributes
+		for (int i = 0; i < xmlReader.getAttributeCount(); i++) {
+			rootAtts.put(xmlReader.getAttributeLocalName(i),xmlReader.getAttributeValue(i));
+		}
+	}
+
+	private static void saveRecord(XMLStreamReader xmlReader) throws Exception {
+
+		if (currentTag.equalsIgnoreCase("LgRec")) {
+			lineCount++;  //LgRec is usually 2 lines
+			ElementMap = null; //LgRec is the root for each record, so initialize it when it is LgRec
+		}
+		lineCount++;
+
+		attributeMap = null;
+		obj = new Object[2];
+		//save attributes
+		for (int i = 0; i < xmlReader.getAttributeCount(); i++) {
+			String attName = xmlReader.getAttributeLocalName(i);
+			String attVal  = xmlReader.getAttributeValue(i);
+			if (currentTag.equalsIgnoreCase("LgRec") &&
+					attName.equalsIgnoreCase("RecId")) {
+				RecId = attVal;
+			}
+			if (currentTag.equalsIgnoreCase("DE") &&
+					attName.equalsIgnoreCase("RecId")) {
+				RecId = attVal;
+			}
+			attributeMap.put(attName, attVal);
+		}
+		obj[0] = attributeMap;
+		//save element
+		ElementMap.put(currentTag, obj);
+	}
+
 	//SPACE CHARACTERS
 	private static void handleCHEvent(XMLStreamReader xmlReader) throws Exception {
+		/*
 		if (startWriting) {
 			xmlw.writeCharacters(xmlReader.getText() );
 		}
+		*/
+		currentValue = xmlReader.getText();
+		obj[1] = currentValue;
+		ElementMap.put(currentTag, obj);
 	}
 
 	//END_ELEMENT
@@ -198,10 +289,29 @@ public class SplitXmlGZipStream {
 
 		if (tagName[0].equalsIgnoreCase("OmniLog")) {
 			writeEndDocument();
-		} else {
-		    xmlw.writeEndElement();
-		    //xmlw.writeCharacters("\n");
+		} else if (tagName[0].equalsIgnoreCase("OmniLog"))  {
+			writeRecord();
+		    //xmlw.writeEndElement();
 		}
+	}
+
+	private static void writeRecord() throws Exception {
+
+		/*
+		String[] tagName = getName(xmlReader);
+
+		// count line only when not DE tag
+		if (!tagName[0].equalsIgnoreCase("DE")) {
+			lineCount++;
+		}
+
+		if (tagName[0].equalsIgnoreCase("OmniLog")) {
+			writeEndDocument();
+		} else if (tagName[0].equalsIgnoreCase("OmniLog"))  {
+			writeRecord();
+		    //xmlw.writeEndElement();
+		}
+		*/
 	}
 
 	private static void writeEndDocument() throws Exception {
@@ -223,40 +333,6 @@ public class SplitXmlGZipStream {
             xmlw.close();
             gzos.close();
        	}
-	}
-
-	//START_ELEMENT
-	private static void handleSEEvent(XMLStreamReader xmlReader) throws Exception {
-
-		String[] tagName = getName(xmlReader);
-		if (tagName[0].equalsIgnoreCase("OmniLog")) {
-			saveRootElement(xmlReader);
-
-			return;
-		}
-
-		if (tagName[0].equalsIgnoreCase("LgRec")) {
-			recCount++;
-			lineCount++;  //LgRec is usually 2 lines
-			if ( (recCount % messageLim) == 0 ) {
-				System.out.println("Processed Record count : " + recCount + " Line count : " + lineCount + " Time : " + (new Timestamp(System.currentTimeMillis())) );
-			}
-			String recId = getAttribute(xmlReader,"RecId");
-			setCurrentXMLwriter(recId);
-		}
-		lineCount++;
-
-		copyElement(xmlReader);
-	}
-
-	private static void saveRootElement(XMLStreamReader xmlReader) throws Exception {
-		//save root name
-		rootName = xmlReader.getLocalName();
-		//copyNamespaces(xmlReader);
-		//save root attributes
-		for (int i = 0; i < xmlReader.getAttributeCount(); i++) {
-			rootAtts.put(xmlReader.getAttributeLocalName(i),xmlReader.getAttributeValue(i));
-		}
 	}
 
 	private static String getAttribute(XMLStreamReader xmlReader, String attName) {
@@ -290,7 +366,7 @@ public class SplitXmlGZipStream {
 			objArr[2] = new Integer(1);    //counter
 			xmlw = xmlwNew;
 			xmlSWMap.put(recId, objArr);
-			startWriting = true;
+			//startWriting = true;
 
 			writeStartDocument();
 		}
