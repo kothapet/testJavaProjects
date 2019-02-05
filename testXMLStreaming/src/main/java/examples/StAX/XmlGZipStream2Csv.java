@@ -20,6 +20,7 @@ import java.util.zip.GZIPOutputStream;
 public class XmlGZipStream2Csv {
 
 
+	private static final String BACKSLASH = "\\";
 	private static final String QUOTE = "\"";
 	private static final String COMMA = ",";
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
@@ -31,15 +32,20 @@ public class XmlGZipStream2Csv {
 	private static boolean processField;
 
 
+	// reset these for each logical record type
 	private static TreeMap<String, String>  metaInfo ;      //for each element in meta, has field Names(headings) key would be num
 	private static TreeMap<String, String>  emptyDataRec;   //for each element in meta, has empty field, key would be num
+	private static TreeMap<String, Integer> missingElemRec ;
+	private static GZIPOutputStream out;
+	// reset these for each physical record type
 	private static TreeMap<String, TreeMap<String, String>>  metaTab ;
 	private static TreeMap<String, TreeMap<String, String>>  emptyDataTab ;
+	private static TreeMap<String, TreeMap<String, Integer>> missingElemTab ;
+	private static TreeMap<String, GZIPOutputStream>  outMap ;
 
+	// reset these for each record
 	private static TreeMap<String, String>  tempDataRec ;
 	private static TreeMap<String, String>  realDataRec ;
-	private static TreeMap<String, Integer> missingElemRec ;
-	private static TreeMap<String, TreeMap<String, Integer>> missingElemTab ;
 	private static TreeMap<String, String>  deAttMap ; //has element attributes key/value pairs (meta and data)
 
 	//private static boolean isCodeField;
@@ -49,8 +55,6 @@ public class XmlGZipStream2Csv {
 	private static String prevRecId;            //BAUD - sub record type
 	private static String currentKey;
 	private static boolean isKeyFound = false;
-	private static GZIPOutputStream out;
-	private static TreeMap<String, GZIPOutputStream>  outMap ;
 
 	private static String inputDir;
 	private static String inputPattern;
@@ -167,10 +171,6 @@ public class XmlGZipStream2Csv {
 			DirectoryStream<Path> stream = Files.newDirectoryStream(inputPath, inputPattern);
 		    for (Path entry: stream) {
 		    	count = 0;
-		    	deAttMap = new TreeMap<String, String>();
-		    	metaInfo = new TreeMap<String, String>();
-		    	emptyDataRec = new TreeMap<String, String>();
-		    	tempDataRec = new TreeMap<String, String>();
 		    	missingElemTab = new TreeMap<String, TreeMap<String, Integer>>();
 		    	metaTab = new TreeMap<String, TreeMap<String, String>>();
 		    	emptyDataTab = new TreeMap<String, TreeMap<String, String>>();
@@ -269,6 +269,7 @@ public class XmlGZipStream2Csv {
 
 		//tempDataRec = (TreeMap<String, String>) emptyDataRec.clone();
 		tempDataRec = new TreeMap<String, String>();
+    	//deAttMap = new TreeMap<String, String>();
 
 		deAttMap = getAttributeMap(xmlReader);
 
@@ -345,7 +346,7 @@ public class XmlGZipStream2Csv {
 		for(Map.Entry<String, String> entry : realDataRec.entrySet()) {
 			  key = entry.getKey();
 			  if (metaInfo.containsKey(key)) {
-				  String value = entry.getValue().replace(QUOTE, QUOTE+QUOTE  ) ;
+				  String value = entry.getValue().replace(QUOTE, BACKSLASH+QUOTE  ) ;
 				  RecString = RecString + QUOTE + value + QUOTE + COMMA;
 			  } else {
 				  //String key1 = String.format("%03d", (Integer.parseInt(key) - 3));
@@ -402,6 +403,8 @@ public class XmlGZipStream2Csv {
 		//System.out.println("metaFile : " + metaFile);
 		File metaFileName = new File(metaDir + File.separator + metaFile);
 		//processMetaFile(metaFileName);
+    	metaInfo = new TreeMap<String, String>();
+    	emptyDataRec = new TreeMap<String, String>();
     	missingElemRec = new TreeMap<String, Integer>();
 
 		metaInfo.put("#00", "RecId");
