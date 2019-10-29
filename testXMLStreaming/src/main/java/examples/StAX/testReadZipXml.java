@@ -1,11 +1,15 @@
 package examples.StAX;
 
-import java.io.FileReader;
+import java.io.InputStream;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import javax.xml.stream.*;
 
 /**
  */
-public class testReadXML {
+public class testReadZipXml {
 	private static String filename = null;
 
 	private static void printUsage() {
@@ -14,15 +18,13 @@ public class testReadXML {
 
 	public static void main(String[] args) throws Exception {
 		try {
-			String inputDir = "C:/EclipseNeonWorkSpace/OmniXML/data/";
-			String inputFile = "omnilogsubset.txt";
-			//String inputDir = "C:/EclipseNeonWorkSpace/OmniXML/omni_data/";
-			//String inputFile = "omnilog20181212-135913.xml";
-			//String inputDir = "C:/EclipseNeonWorkSpace/OmniXML/omni_data/OmniXML/In/";
-			//String inputFile = "PLPL.xml";
+			//String inputDir = "C:/EclipseNeonWorkSpace/OmniXML/data/";
+			//String inputFile = "test1.xml";
+			String inputDir = "C:/EclipseNeonWorkSpace/OmniXML/omni_data/out/";
+			//String inputFile = "omnilog20181212-135913.zip";
+			String inputFile = "TEST1.zip";
 
 			// filename = args[0];
-			// filename = args[1];
 			filename = inputDir + inputFile;
 		} catch (ArrayIndexOutOfBoundsException aioobe) {
 			printUsage();
@@ -31,16 +33,28 @@ public class testReadXML {
 
 		XMLInputFactory xmlInFactory = XMLInputFactory.newInstance();
 		System.out.println("FACTORY: " + xmlInFactory);
+		XMLStreamReader xmlReader = null;
 
-		XMLStreamReader xmlReader = xmlInFactory.createXMLStreamReader(new FileReader(filename));
-		System.out.println("READER:  " + xmlReader + "\n");
+		ZipFile zf = new ZipFile(filename);
 
-		while (xmlReader.hasNext()) {
-			printEvent(xmlReader);
-			xmlReader.next();
-		}
+        for (Enumeration<? extends ZipEntry> entries = zf.entries(); entries.hasMoreElements();)
+        {
+        	ZipEntry entry = entries.nextElement();
+            String s = String.format("Entry: %s len %d added %TD",
+                    entry.getName(), entry.getSize(),
+                    new Date(entry.getTime()));
+            System.out.println(s);
+            InputStream in = zf.getInputStream(entry);
+    		xmlReader = xmlInFactory.createXMLStreamReader(in);
+    		System.out.println("READER:  " + xmlReader + "\n");
 
-		xmlReader.close();
+    		while (xmlReader.hasNext()) {
+    			printEvent(xmlReader);
+    			xmlReader.next();
+    		}
+
+    		xmlReader.close();
+        }
 	}
 
 	private static void printEvent(XMLStreamReader xmlReader) {

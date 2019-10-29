@@ -1,26 +1,24 @@
 package examples.StAX;
 
 import java.io.FileReader;
+import java.sql.Timestamp;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.xml.stream.*;
 
-//import java.io.FileNotFoundException;
-//import java.util.Iterator;
-//import javax.xml.namespace.QName;
 
 /**
- * This is a simple parsing example that illustrates the XMLStreamReader class.
- *
- * @author Copyright (c) 2003 by BEA Systems. All Rights Reserved.
  */
-public class SplitXML {
+public class SplitXmlStream {
 
 	private static String outputDir ;
 	private static String outputPre ;
 	private static String outputSuf = ".xml";
+	private static int    messageLim ;
+	private static int count = 0;
+
 	private static XMLOutputFactory xmlof = XMLOutputFactory.newInstance();
 
 	private static String docVersion;
@@ -77,6 +75,20 @@ public class SplitXML {
 			isError = true;
 		}
 
+		String msgLim = System.getProperty("messageLim");
+		System.out.println("messageLim : " + msgLim);
+		if (msgLim==null || msgLim.equalsIgnoreCase("") ) {
+			//messageLim = 100000;
+			messageLim = 1000;
+		} else {
+			try {
+			messageLim =  Integer.parseInt(msgLim);
+			} catch ( NumberFormatException e) {
+				System.out.println("Invalid Message limit value " + messageLim  +" -DmessageLim=<Message Limit>, Enter a valid integer value. ");
+				isError = true;
+			}
+		}
+
 		if (isError) {
 			printUsage();
 			return;
@@ -89,26 +101,28 @@ public class SplitXML {
 		//
 		// Get an input factory
 		//
-		XMLInputFactory xmlif = XMLInputFactory.newInstance();
-		System.out.println("FACTORY: " + xmlif);
+		XMLInputFactory xmlInFactory = XMLInputFactory.newInstance();
+		System.out.println("FACTORY: " + xmlInFactory);
 		//
 		// Instantiate a reader
 		//
 
-		XMLStreamReader xmlr = xmlif.createXMLStreamReader(new FileReader(inFilename));
-		//XMLStreamReader xmlr = xmlif.createXMLStreamReader(System.in);
-		System.out.println("READER:  " + xmlr + "\n");
+		XMLStreamReader xmlReader = xmlInFactory.createXMLStreamReader(new FileReader(inFilename));
+		//XMLStreamReader xmlReader = xmlInFactory.createXMLStreamReader(System.in);
+		System.out.println("READER:  " + xmlReader + "\n");
 		//
 		// Parse the XML
 		//
-		while (xmlr.hasNext()) {
-			handleEvent(xmlr);
-			xmlr.next();
+		System.out.println("Started processing at Time : " + (new Timestamp(System.currentTimeMillis())) );
+		while (xmlReader.hasNext()) {
+			handleEvent(xmlReader);
+			xmlReader.next();
 		}
+		System.out.println("Processed event count : " + count + " Time : " + (new Timestamp(System.currentTimeMillis())) );
 		//
 		// Close the reader
 		//
-		xmlr.close();
+		xmlReader.close();
    		System.out.println("Processing complete.." );
 	}
 
@@ -118,43 +132,48 @@ public class SplitXML {
 		                       " [-DinputDir=<Input directory name>] " +
 		                       " [-DinputFile=<input file name>] " +
 		                       " [-DoutputDir=<Output directory name>] " +
-				               " -cp \"$CLASSDIR/*\" examples.StAX.SplitXML  ");
+		                       " [-DmessageLim=<Messagae Limit>] " +
+				               " -cp \"$CLASSDIR/*\" examples.StAX.SplitXmlStream  ");
 
 		System.out.println(" " );
 		System.out.println(" where [] : optional parameters " );
+		System.out.println("   " );
 		System.out.println("   when optional is not provided, the following is assumed " );
 		System.out.println("   inputDir  = \".\" (current directory is assumed) " );
 		System.out.println("   inputFile = \"omnilog.xml\"  " );
 		System.out.println("   outputDir = \".\" (current directory is assumed) " );
+		System.out.println("   messageLim = 100000  " );
+		System.out.println("   " );
+		System.out.println("   " );
 	}
 
-	private static void handleEvent(XMLStreamReader xmlr) throws Exception {
-		switch (xmlr.getEventType()) {
+	private static void handleEvent(XMLStreamReader xmlReader) throws Exception {
+		switch (xmlReader.getEventType()) {
 			case XMLStreamConstants.START_DOCUMENT:
-				handleSDEvent(xmlr);
+				handleSDEvent(xmlReader);
 				break;
 			case XMLStreamConstants.START_ELEMENT:
-				handleSEEvent(xmlr);
+				handleSEEvent(xmlReader);
 				break;
 			case XMLStreamConstants.END_ELEMENT:
-				handleEEEvent(xmlr);
+				handleEEEvent(xmlReader);
 				break;
 			case XMLStreamConstants.SPACE:
 			case XMLStreamConstants.CHARACTERS:
-				handleCHEvent(xmlr);
+				handleCHEvent(xmlReader);
 				break;
 		}
 	}
 
-	private static void handleCHEvent(XMLStreamReader xmlr) throws Exception {
+	private static void handleCHEvent(XMLStreamReader xmlReader) throws Exception {
 		if (startWriting) {
-			xmlw.writeCharacters(xmlr.getText() );
+			xmlw.writeCharacters(xmlReader.getText() );
 		}
 	}
 
-	private static void handleEEEvent(XMLStreamReader xmlr) throws Exception {
+	private static void handleEEEvent(XMLStreamReader xmlReader) throws Exception {
 
-		String[] tagName = getName(xmlr);
+		String[] tagName = getName(xmlReader);
 		if (tagName[0].equalsIgnoreCase("OmniLog")) {
 			writeEndDocument();
 		} else {
@@ -163,44 +182,48 @@ public class SplitXML {
 		}
 	}
 
-	private static void handleSDEvent(XMLStreamReader xmlr)  {
+	private static void handleSDEvent(XMLStreamReader xmlReader)  {
 
-		docVersion = xmlr.getVersion();
-		docEncoding = xmlr.getCharacterEncodingScheme();
-		//boolean isDocStandalone = xmlr.isStandalone();
+		docVersion = xmlReader.getVersion();
+		docEncoding = xmlReader.getCharacterEncodingScheme();
+		//boolean isDocStandalone = xmlReader.isStandalone();
 	}
 
-	private static void handleSEEvent(XMLStreamReader xmlr) throws Exception {
+	private static void handleSEEvent(XMLStreamReader xmlReader) throws Exception {
 
-		String[] tagName = getName(xmlr);
+		String[] tagName = getName(xmlReader);
 		if (tagName[0].equalsIgnoreCase("OmniLog")) {
-			saveRootElement(xmlr);
+			saveRootElement(xmlReader);
 			return;
 		}
 
 		if (tagName[0].equalsIgnoreCase("LgRec")) {
-			String recId = getAttribute(xmlr,"RecId");
+			count++;
+			if ( (count % messageLim) == 0 ) {
+				System.out.println("Processed event count : " + count + " Time : " + (new Timestamp(System.currentTimeMillis())) );
+			}
+			String recId = getAttribute(xmlReader,"RecId");
 			setCurrentXMLwriter(recId);
 		}
 
-		copyElement(xmlr);
+		copyElement(xmlReader);
 	}
 
-	private static void saveRootElement(XMLStreamReader xmlr) throws Exception {
+	private static void saveRootElement(XMLStreamReader xmlReader) throws Exception {
 		//save root name
-		rootName = xmlr.getLocalName();
-		//copyNamespaces(xmlr);
+		rootName = xmlReader.getLocalName();
+		//copyNamespaces(xmlReader);
 		//save root attributes
-		for (int i = 0; i < xmlr.getAttributeCount(); i++) {
-			rootAtts.put(xmlr.getAttributeLocalName(i),xmlr.getAttributeValue(i));
+		for (int i = 0; i < xmlReader.getAttributeCount(); i++) {
+			rootAtts.put(xmlReader.getAttributeLocalName(i),xmlReader.getAttributeValue(i));
 		}
 	}
 
-	private static String getAttribute(XMLStreamReader xmlr, String attName) {
+	private static String getAttribute(XMLStreamReader xmlReader, String attName) {
 		String retval = "";
-		for (int i = 0; i < xmlr.getAttributeCount() && retval.equals(""); i++) {
-			String localName = xmlr.getAttributeLocalName(i);
-			String value = xmlr.getAttributeValue(i);
+		for (int i = 0; i < xmlReader.getAttributeCount() && retval.equals(""); i++) {
+			String localName = xmlReader.getAttributeLocalName(i);
+			String value = xmlReader.getAttributeValue(i);
 			if (localName.equalsIgnoreCase(attName)) {
 				retval = value;
 			}
@@ -212,7 +235,7 @@ public class SplitXML {
 		if(xmlSWMap.containsKey(recId) ) {
 			xmlw = xmlSWMap.get(recId);
 		} else {
-			String outputFileName = outputDir + File.separator + outputPre + recId + outputSuf;
+			String outputFileName = outputDir + File.separator + outputPre + "_" + recId + outputSuf;
 			System.out.println("  Started processing recId : " + recId + " Output File : " + outputFileName );
 			XMLStreamWriter xmlwNew = xmlof.createXMLStreamWriter(new FileOutputStream (outputFileName), docEncoding);
 			xmlw = xmlwNew;
@@ -253,23 +276,23 @@ public class SplitXML {
 	    xmlw.writeCharacters("\n");
 	}
 
-	private static void copyElement(XMLStreamReader xmlr) throws Exception {
+	private static void copyElement(XMLStreamReader xmlReader) throws Exception {
 		//write element
-		xmlw.writeStartElement(xmlr.getLocalName());
-		//xmlw.writeStartElement(xmlr.getPrefix(), xmlr.getLocalName(), xmlr.getNamespaceURI());
+		xmlw.writeStartElement(xmlReader.getLocalName());
+		//xmlw.writeStartElement(xmlReader.getPrefix(), xmlReader.getLocalName(), xmlReader.getNamespaceURI());
 		//write attributes
-		for (int i = 0; i < xmlr.getAttributeCount(); i++) {
-			xmlw.writeAttribute(xmlr.getAttributeLocalName(i),xmlr.getAttributeValue(i));
+		for (int i = 0; i < xmlReader.getAttributeCount(); i++) {
+			xmlw.writeAttribute(xmlReader.getAttributeLocalName(i),xmlReader.getAttributeValue(i));
 		}
 	    //xmlw.writeCharacters("\n");
 	}
 
-	private static String[] getName(XMLStreamReader xmlr)  {
+	private static String[] getName(XMLStreamReader xmlReader)  {
 		String[] tagName = new String[3];
-		if (xmlr.hasName()) {
-			tagName[0] = xmlr.getLocalName();
-			//tagName[1] = xmlr.getPrefix();
-			//tagName[2] = xmlr.getNamespaceURI();
+		if (xmlReader.hasName()) {
+			tagName[0] = xmlReader.getLocalName();
+			//tagName[1] = xmlReader.getPrefix();
+			//tagName[2] = xmlReader.getNamespaceURI();
 		}
 		return tagName;
 	}

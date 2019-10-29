@@ -2,21 +2,33 @@ package examples.StAX;
 
 
 import java.io.FileOutputStream;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
 import javax.xml.stream.*;
  /**
  */
- public class testWriteXML {
+ public class testWriteZipXml {
    public static void main(String args[]) throws Exception {
      //
 	String outputDir = "C:/EclipseNeonWorkSpace/OmniXML/data/";
-	String oututFile = "testWrite.xml";
-	String outputFileName = outputDir + oututFile;
+	String outputZipFile = "testWrite.zip";
+	String outputFile = "testWrite.xml";
+	String zipFileName = outputDir + outputZipFile;
+
+	ZipOutputStream zipStream = new ZipOutputStream( new FileOutputStream(zipFileName));
+	ZipEntry entry = new ZipEntry(outputFile);
+    entry.setComment("Created for XML Zip test");
+    entry.setCreationTime(FileTime.from(Instant.now()));
+    zipStream.putNextEntry(entry);
 
 
     XMLOutputFactory xmlof = XMLOutputFactory.newInstance();
     System.out.println("FACTORY:  " + xmlof);
 
-    XMLStreamWriter xmlw = xmlof.createXMLStreamWriter(new FileOutputStream (outputFileName));
+    XMLStreamWriter xmlw = xmlof.createXMLStreamWriter(zipStream);
     System.out.println("WRITER:  " + xmlw + "\n");
 
     // Write the default XML declaration
@@ -55,5 +67,7 @@ import javax.xml.stream.*;
 
     // Close the XMLStreamWriter to free up resources
     xmlw.close();
-   }
+    zipStream.close();
+
+    }
  }

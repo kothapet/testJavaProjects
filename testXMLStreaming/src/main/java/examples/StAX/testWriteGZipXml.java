@@ -2,24 +2,28 @@ package examples.StAX;
 
 
 import java.io.FileOutputStream;
+import java.util.zip.GZIPOutputStream;
+
 import javax.xml.stream.*;
  /**
+ *
+ *
  */
- public class testWriteXML {
+ public class testWriteGZipXml {
    public static void main(String args[]) throws Exception {
      //
 	String outputDir = "C:/EclipseNeonWorkSpace/OmniXML/data/";
-	String oututFile = "testWrite.xml";
-	String outputFileName = outputDir + oututFile;
+	String outputZipFile = "testWrite.xml.gz";
+	String zipFileName = outputDir + outputZipFile;
 
+	GZIPOutputStream  gzos = new GZIPOutputStream ( new FileOutputStream(zipFileName));
 
     XMLOutputFactory xmlof = XMLOutputFactory.newInstance();
     System.out.println("FACTORY:  " + xmlof);
 
-    XMLStreamWriter xmlw = xmlof.createXMLStreamWriter(new FileOutputStream (outputFileName));
+    XMLStreamWriter xmlw = xmlof.createXMLStreamWriter(gzos);
     System.out.println("WRITER:  " + xmlw + "\n");
 
-    // Write the default XML declaration
     xmlw.writeStartDocument();
     xmlw.writeCharacters("\n");
     xmlw.writeCharacters("\n");
@@ -50,10 +54,11 @@ import javax.xml.stream.*;
     // End the "person" element
     xmlw.writeEndElement();
 
-    // End the XML document
+     // End the XML document
     xmlw.writeEndDocument();
 
     // Close the XMLStreamWriter to free up resources
     xmlw.close();
+    gzos.close();
    }
  }
