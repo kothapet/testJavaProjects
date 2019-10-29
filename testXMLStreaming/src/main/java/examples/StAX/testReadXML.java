@@ -23,6 +23,7 @@ public class testReadXML {
 			String inputFile = "test1.xml";
 
 			// filename = args[0];
+			// filename = args[1];
 			filename = inputDir + inputFile;
 		} catch (ArrayIndexOutOfBoundsException aioobe) {
 			printUsage();
